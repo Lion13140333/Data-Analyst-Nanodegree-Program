@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>棒球选手数据可视化图</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+
+    <style>
+
+    h2{
+      text-align: center;
+    }
+
+    body{
+      text-align: center;
+      font: 14px sans-serif;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .dot,.legend rect{
+      opacity: 0.4;
+    }
+
+    div.handedness_button{
+      position: fixed;
+      top: 190px;
+      left: 60px;
+    }
+
+     div.handedness_button div{
+      background-color: rgb(250,280,127);
+      padding: 4px;
+      margin: 17px;
+    }
+
+    .note{
+      color: gray;
+      font: 13px sans-serif;
+    }
+
+    svg rect {
+      opacity: 0.5;
+      fill: black;
+    }
+
+    </style>
+
+    <script type="text/javascript">
+      function draw(data) {
+        //set svg size
+        var margin = {top: 50, right: 150, bottom: 50, left: 50},
+        width = 1200 - margin.left - margin.right,
+        height = 700 - margin.top - margin.bottom;
+
+        //标题并设置字体大小
+        d3.select("body")
+          .append("h2")
+          .text("棒球选手用手习惯与身高、体重、击球率和全垒得分的关系")
+
+
+        //x轴及长度
+        var x = d3.scale.linear()
+        .range([0, width]);
+
+
+        //y轴及高度
+        var y = d3.scale.linear()
+        .range([height, 0]);
+
+
+      // 设置颜色的范围
+        var color = d3.scale.category10();
+
+        //设置椭圆
+        var rx = d3.scale.linear()
+        .range([5,14]);
+
+        var ry = d3.scale.linear()
+        .range([5,14]);
+
+        var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+
+        var svg = d3.select("body")
+          .append("svg")
+            .attr("width", width + margin.left+ margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+        x.domain(d3.extent(data, function(d) { return d.height; })).nice();
+        y.domain(d3.extent(data, function(d) { return d.weight; })).nice();
+
+        // 调整椭圆的大小
+        rx.domain([0.02, 0.5]);
+        ry.domain([0, 400]);
+        debugger;
+
+       //标签设置
+        var handed = ["Right hand", "Left hand", "Both hand", "All"];
+
+
+        // x轴设置
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+          .append("text")
+            .attr("class", "label")
+            .attr("x", width)
+            .attr("y", -4)
+            .style("text-anchor", "end")
+            .text("height ( inch )");
+
+        // y轴设置
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+          .append("text")
+            .attr("class", "label")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("weight ( pound )")
+
+
+        // 设置画椭圆的函数
+        function draw_point(draw_data){
+          svg.selectAll("ellipse").remove();
+          debugger;
+
+         svg.selectAll(".dot")
+          .data(draw_data.sort(function(a,b){
+            //对数据进行排序
+            return a.avg - b.avg;
+          }))
+          .enter()
+          .append("ellipse")
+          .attr("class", "dot")
+          .attr("cx", function(d){return x(d.height); })
+          .attr("cy", function(d){return y(d.weight); })
+          .attr("rx",  function(d){return rx(d.avg); })
+          .attr("ry",  function(d){return ry(d.HR); })
+          .style("fill", function(d){return color(d.handedness);})
+          .on("mouseover", handleMouseOver)
+          .on("mouseout", handleMouseOut);
+        };
+
+
+
+     // 鼠标悬浮在椭圆上方时，显示该椭圆的相关信息
+        function handleMouseOver(d, i){
+
+          var height = "height: " + d.height;
+          var weight = "weight: " + d.weight;
+          var avg = "avg: " + d.avg;
+          var HR = "HR: " + d.HR;
+
+          var str1 = String(height) + "\t" + String(weight);
+          var str2 = String(avg) + "\t" + String(HR);
+
+           //鼠标在椭圆上显示放大的倍数
+          d3.select(this)
+            .style("rx", function(d){return rx(d.avg)*3; })
+            .style("ry", function(d){return ry(d.HR)*3; });
+
+
+           // 每个圆上的悬浮框
+          svg.append("rect")
+          .attr("id", "information1")
+          .attr("color", "green")
+          .attr("x", function(){return x(d.height)-50; })
+          .attr("y", function(){return y(d.weight)+25; })
+          .attr("width", "180")
+          .attr("height", "40");
+
+          // 在悬浮框中，画出相关信息，包括身高、体重、击球率、全垒得分
+          svg.append("text")
+          .attr("id", "information1")
+          .attr("fill", "#FFF")
+          .attr("x", function(){return x(d.height)-50; })
+          .attr("y", function(){return y(d.weight)+40; })
+          .text(str1);
+
+           svg.append("text")
+          .attr("id","information2")
+          .attr("fill", "#FFF")
+          .attr("x", function(){return x(d.height)-30; })
+          .attr("y", function(){return y(d.weight)+60; })
+          .text(str2);
+
+
+        }
+
+        // 鼠标移开时删除多余的信息
+        function handleMouseOut(d, i){
+          d3.select(this)
+          .style("rx", function(d){return rx(d.avg); })
+          .style("ry", function(d){return ry(d.HR); });
+
+          d3.selectAll("#information1").remove();
+          d3.selectAll("#information2").remove();
+
+        }
+
+        //画出所有的椭圆
+        draw_point(data);
+
+        // 设置图例
+        var legend = svg.selectAll(".legend")
+        .data(color.domain())
+        .enter()
+        .append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i){return "translate(0," + i * 20 + ")"; });
+
+        legend.append("rect")
+            .attr("x", 40)
+            .attr("y", -40)
+            .attr("width", 20)
+            .attr("height", 18)
+            .style("fill", color);
+
+
+
+        legend.append("text")
+            .attr("x", 630)
+            .attr("y", -30)
+            .attr("dy", ".20em")
+            .style("text-anchor", "end")
+            .text(function(d) {
+              if (d == "R"){
+                return "Right hand，AVG(height)：72，AVG(weight)：183，AVG(avg)：0.25，AVG(HR)：69";
+              }
+              if (d == "L") {
+                return "Left hand，AVG(height)：72，AVG(weight)：184，AVG(avg)：0.24，AVG(HR)：59";
+              }
+              else {
+                return "Both hand，AVG(height)：72，AVG(weight)：176，AVG(avg)：0.24，AVG(HR)：40"
+              };
+
+            });
+
+       //添加按钮
+        var buttons = d3.select("body")
+        .append("div")
+        .attr("class", "handedness_button")
+        .selectAll("div")
+        .data(handed)
+        .enter()
+        .append("div")
+        .text(function(d){
+          return d;
+        });
+
+
+        // 设置备注
+        d3.select("body")
+          .append("div")
+          .attr("class", "note")
+          .attr("x", 100)
+          .attr("y", -40)
+          .text("1. 椭圆横向半径代表击球率大小")
+
+          .append("div")
+          .attr("class", "note")
+          .attr("x", 40)
+          .attr("y", -40)
+          .text("2. 纵向半径代表全垒得分大小")
+
+          .append("div")
+          .attr("class", "note")
+          .attr("x", 40)
+          .attr("y", -40)
+          .text("3. 颜色深的地方代表的点数越多")
+
+
+        // 设置点击事件
+        buttons.on("click", function(d){
+          d3.select(".handedness_button")
+            .selectAll("div")
+            .transition()
+            .duration(500)
+            .style("color", "black")
+            .style("background", "rgb(251, 201, 127)");
+
+          d3.select(this)
+            .transition()
+            .duration(500)
+            .style("background", "lightGreen")
+            .style("color", "blue");
+          update(d);
+        });
+
+
+        // 设置update函数，当点击按钮时，会按照此函数刷新数据
+        function update(handedness) {
+
+          if (handedness == "Right hand") {
+            hand = "R";
+          }
+          else if (handedness == "Left hand") {
+            hand = "L";
+          }
+          else if (handedness == "Both hand") {
+            hand = "B";
+          }
+          else {
+            hand = "All";
+          }
+
+          function filtered(tmp_data){
+            return data.filter(function(d){
+              return d.handedness == tmp_data;
+          });}
+
+          if (hand == "All"){
+            draw_point(data);
+          }
+          else {
+            draw_point(filtered(hand));
+          }
+        }
+      }
+
+    </script>
+
+</head>
+<body>
+
+<script type="text/javascript">
+  d3.csv("baseball_data_01.csv",draw);
+  </script>
+
+</body>
+</html>
